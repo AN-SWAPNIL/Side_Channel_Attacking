@@ -14,7 +14,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 # Path to the saved models
-MODELS_DIR = "../results2/saved_models"
+MODELS_DIR = "./saved_models_merged"
 # Define classes (websites)
 WEBSITES = [
     "https://cse.buet.ac.bd/moodle/",
