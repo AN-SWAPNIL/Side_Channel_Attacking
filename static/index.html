@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Website Fingerprinting</title>
+    <!-- Pico CSS - minimal CSS framework -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css"
+    />
+    <!-- Alpine.js - minimal reactive framework -->
+    <script
+      defer
+      src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"
+    ></script>
+    <style>
+      body {
+        max-width: 960px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+
+      .button-group {
+        display: flex;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+      }
+
+      .button-group button {
+        margin: 0;
+        padding: 0.5rem 1rem;
+      }
+
+      .results-table {
+        margin: 0 auto;
+        width: 100%;
+      }
+
+      .heatmap-container {
+        margin: 1rem 0 2rem;
+        text-align: center;
+        border: 1px solid #eee;
+        border-radius: 6px;
+        padding: 1rem;
+        background: #fafafa;
+      }
+
+      .heatmap-image {
+        max-width: 100%;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+
+      .heatmap-info {
+        margin: 0.5rem 0;
+        font-size: 0.85rem;
+        color: #666;
+      }
+
+      .alert-success {
+        color: #155724;
+        background-color: #d4edda;
+        border: 1px solid #c3e6cb;
+        padding: 0.75rem;
+        border-radius: 0.25rem;
+        margin: 1rem 0;
+      }
+
+      .alert-error {
+        color: #721c24;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+        padding: 0.75rem;
+        border-radius: 0.25rem;
+        margin: 1rem 0;
+      }
+      /* Website prediction styles */
+      .predictions-container {
+        margin: 1rem 0;
+        padding: 0.75rem;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        background-color: #fff;
+      }
+
+      .predictions-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+      }
+
+      .prediction-item {
+        display: grid;
+        grid-template-columns: minmax(200px, 1fr) auto;
+        align-items: center;
+        padding: 0.25rem 0;
+      }
+
+      .website {
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #333;
+      }
+
+      .probability-bar {
+        height: 18px;
+        width: 100%;
+        background-color: #f0f0f0;
+        border-radius: 3px;
+        overflow: hidden;
+        position: relative;
+        grid-column: span 2;
+        margin-top: 2px;
+      }
+
+      .probability-fill {
+        height: 100%;
+        transition: width 0.3s ease;
+      }
+
+      .probability-text {
+        position: absolute;
+        right: 5px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #fff;
+        font-size: 0.75rem;
+        font-weight: bold;
+      }
+
+      .detection-info {
+        margin: 0 0 0.5rem;
+        font-size: 0.8rem;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container" x-data="app()">
+      <h1>CSE406: Website Fingerprinting</h1>
+      <p>
+        <em
+          >Side-Channel Attack Implementation using Sweep Counting Technique</em
+        >
+      </p>
+      <p>
+        <strong>Instructions:</strong>
+        1. Click "Collect Latency Data" to measure timing precision (Task 1) 2.
+        Open a target website in another tab 3. Click "Collect trace" to perform
+        the side-channel attack (Task 2) 4. Observe different patterns for
+        different websites!
+      </p>
+
+      <div class="button-group">
+        <button @click="collectLatencyData()" :disabled="isCollecting">
+          Collect Latency Data
+        </button>
+        <button @click="collectTraceData()" :disabled="isCollecting">
+          Collect Trace Data
+        </button>
+        <button @click="downloadTraces()" :disabled="isCollecting">
+          Download traces
+        </button>
+        <button @click="refreshResults()" :disabled="isCollecting">
+          Refresh results
+        </button>
+        <button @click="clearResults()" :disabled="isCollecting">
+          Clear all results
+        </button>
+      </div>
+
+      <div
+        x-show="status"
+        role="alert"
+        x-text="status"
+        :class="{'alert-success': !statusIsError, 'alert-error': statusIsError}"
+      ></div>
+
+      <!-- Latency Results Table -->
+      <template x-if="latencyResults && !showingTraces">
+        <div class="results-container">
+          <h3>Latency Results</h3>
+          <table class="results-table">
+            <thead>
+              <tr>
+                <th>N</th>
+                <th>Median Access Latency (ms)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <template x-for="(time, n) in latencyResults" :key="n">
+                <tr>
+                  <td x-text="n"></td>
+                  <td x-text="time.toFixed(2)"></td>
+                </tr>
+              </template>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- Heatmap gallery for all traces -->
+      <template x-if="showingTraces && heatmaps.length > 0">
+        <div class="heatmaps-container">
+          <h2>Cache Side-Channel Analysis</h2>
+          <p>
+            <em
+              >Heatmaps showing cache access patterns over time. Red = high
+              activity, yellow = low activity.</em
+            >
+          </p>
+          <template x-for="heatmap in heatmaps" :key="heatmap.id">
+            <div class="heatmap-container">
+              <img
+                :src="heatmap.image_url"
+                :alt="'Heatmap from ' + heatmap.timestamp"
+                class="heatmap-image"
+              />
+              <div class="heatmap-info">
+                <span
+                  x-text="'Range: ' + heatmap.stats.min + '-' + heatmap.stats.max"
+                ></span>
+                |
+                <span x-text="'Samples: ' + heatmap.stats.samples"></span>
+              </div>
+              <!-- Website predictions section -->
+              <template
+                x-if="heatmap.predictions && heatmap.predictions.length > 0"
+              >
+                <div class="predictions-container">
+                  <h4>
+                    Website Detection Results
+                    <span
+                      class="detection-info"
+                      x-text="heatmap.model_used ? '(' + heatmap.model_used + ')' : ''"
+                    ></span>
+                  </h4>
+                  <div class="predictions-grid">
+                    <template
+                      x-for="(prediction, index) in heatmap.predictions.filter(p => p.probability > 1.0)"
+                      :key="index"
+                    >
+                      <div class="prediction-item">
+                        <span
+                          class="website"
+                          x-text="prediction.website"
+                        ></span>
+                        <span
+                          x-text="prediction.probability.toFixed(1) + '%'"
+                        ></span>
+                        <div class="probability-bar">
+                          <div
+                            class="probability-fill"
+                            :style="'width: ' + prediction.probability + '%; background-color: ' + getProbabilityColor(prediction.probability)"
+                          ></div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </template>
+        </div>
+      </template>
+
+      <template x-if="showingTraces && heatmaps.length === 0">
+        <div class="heatmaps-container">
+          <h3>No Trace Data Available</h3>
+          <p>Click "Collect Trace Data" to generate cache access heatmaps.</p>
+        </div>
+      </template>
+    </main>
+
+    <script src="index.js"></script>
+    <script>
+      // Initialize app by fetching existing results when page loads
+      document.addEventListener("alpine:init", () => {
+        // Fix the initialization call
+        document.addEventListener("DOMContentLoaded", () => {
+          // Access the Alpine data and call fetchResults
+          setTimeout(() => {
+            const appData = Alpine.$data(document.querySelector("[x-data]"));
+            if (appData && appData.fetchResults) {
+              appData.fetchResults();
+            }
+          }, 100);
+        });
+      });
+    </script>
+  </body>
+</html>
