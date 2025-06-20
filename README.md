@@ -1,6 +1,6 @@
 # Website Fingerprinting via Side-Channel Attacks
 
-A side-channel attack implementation that can identify websites users visit in other tabs using only cache timing measurements.
+A comprehensive side-channel attack implementation that identifies websites users visit in other tabs using cache timing measurements. Achieves 98.5% accuracy on individual datasets and 81.7% on collaborative datasets.
 
 ## Project Resources
 
@@ -87,12 +87,19 @@ A side-channel attack implementation that can identify websites users visit in o
   - Both simple and complex model architectures
   - Data preprocessing and normalization
   - Model evaluation and result visualization
+  - **Results**: 95.5% accuracy (Simple Model), 98.5% accuracy (Complex Model)
 
-- **Bonus Task (15%)**: Real-time website detection
+- **Bonus Task 2 (20%)**: Collaborative dataset collection
+  - Large-scale data collection with 100,000+ traces
+  - Extended to 5 websites including Chaldal and Dhaka Tribune
+  - **Results**: 74.6% accuracy (Simple Model), 81.7% accuracy (Complex Model)
+
+- **Bonus Task 3 (15%)**: Real-time website detection
   - Live detection of websites from adjacent tabs
   - Visual probability display for website identification
   - Dynamic UI showing confidence levels
   - Support for multiple trained models
+  - **Demonstration**: 86.5% confidence detection in real-time
 
 ## Features
 
@@ -119,7 +126,16 @@ Two main model architectures were implemented:
 1. **SimpleModel**: Basic neural network with 2 convolutional layers and fully connected layers
 2. **ComplexModel**: Deeper architecture with 3 convolutional layers, batch normalization, and dropout
 
-Both models were trained on collected traces from the 5 target websites, achieving significant accuracy in website identification.
+Both models were trained on collected traces from the 5 target websites, achieving high accuracy in website identification:
+
+### Performance Results
+
+| Model Type | Individual Dataset | Collaborative Dataset |
+|------------|-------------------|----------------------|
+| Simple Model | 95.5% accuracy | 74.6% accuracy |
+| Complex Model | 98.5% accuracy | 81.7% accuracy |
+
+The Complex Model consistently outperforms the Simple Model, with the collaborative dataset demonstrating scalability challenges in real-world scenarios.
 
 ## Automated Data Collection (Task 3)
 
@@ -199,9 +215,11 @@ template/
 
 ## Performance
 
-- **Accuracy**: The models achieve significantly higher than 60% classification accuracy
+- **Individual Dataset**: Simple Model (95.5%), Complex Model (98.5%)
+- **Collaborative Dataset**: Simple Model (74.6%), Complex Model (81.7%)  
 - **Websites**: Successfully tested with 5 different websites
-- **Data**: Collected and processed numerous traces per website for robust training
+- **Data Collection**: 12-hour automated collection process, up to 1000 traces per website
+- **Real-time Detection**: Live classification with 86.5% confidence demonstration
 
 ## Security Implications
 
